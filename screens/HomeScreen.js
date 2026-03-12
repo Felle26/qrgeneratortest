@@ -93,8 +93,12 @@ export default function HomeScreen({ navigation }) {
 
   const generateQRCode = () => {
     const generatedValue = normalizeGeneratedValue(value);
+    const timestamp = Math.floor(Date.now() / 1000); // unix timestamp in seconds
+    const endTimestamp = timestamp + 1; // one second later
+
     setValue('');
-    navigation.navigate('Ergebnis', { generatedValue });
+    // pass value, start and end timestamp
+    navigation.navigate('Ergebnis', { generatedValue, timestamp, endTimestamp });
   };
 
   useEffect(() => {

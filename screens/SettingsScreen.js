@@ -42,14 +42,14 @@ export default function SettingsScreen() {
     <View style={styles.resultContainer}>
       <View style={styles.settingsCard}>
         <Text style={styles.settingsTitle}>Einstellungen</Text>
-        <Text style={styles.settingsDescription}>Hier kannst du die TSE hinterlegen.</Text>
+        <Text style={styles.settingsDescription}>Einstellungen für TSE & andere Optionen</Text>
 
         <Text style={styles.settingsLabel}>TSE</Text>
         <TextInput
           style={styles.settingsInput}
           value={tseValue}
           onChangeText={setTseValue}
-          placeholder="TSE eingeben"
+          placeholder={tseValue || 'TSE eingeben'}
           placeholderTextColor="#98a2b3"
           autoCapitalize="none"
           autoCorrect={false}
