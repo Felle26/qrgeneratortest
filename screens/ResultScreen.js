@@ -1,4 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 import styles from '../styles';
 
 function GeneratedResultView({ value }) {
@@ -17,6 +18,7 @@ export default function ResultScreen({ route, navigation }) {
   return (
     <View style={styles.resultContainer}>
       <GeneratedResultView value={generatedValue} />
+      <QRCode value={generatedValue} size={400} />
 
       <Pressable
         style={({ pressed }) => [styles.backButton, pressed && styles.buttonPressed]}
