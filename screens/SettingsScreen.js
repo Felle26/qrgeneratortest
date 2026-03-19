@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles';
 
 const TSE_STORAGE_KEY = 'tse_value';
+const BON_COUNT_STORAGE_KEY = 'bon_count';
 
 export default function SettingsScreen() {
   const [tseValue, setTseValue] = useState('');
@@ -38,6 +39,15 @@ export default function SettingsScreen() {
     }
   };
 
+  const resetBonCount = async () => {
+    try {
+      await AsyncStorage.setItem(BON_COUNT_STORAGE_KEY, '0');
+      setStatus('Bon Count wurde zurückgesetzt.');
+    } catch (error) {
+      setStatus('Fehler beim Zurücksetzen des Bon Counts.');
+    }
+  };
+
   return (
     <View style={styles.resultContainer}>
       <View style={styles.settingsCard}>
@@ -62,6 +72,18 @@ export default function SettingsScreen() {
           {({ pressed }) => (
             <>
               <Text style={styles.settingsSaveButtonText}>Speichern</Text>
+              {pressed ? <View pointerEvents="none" style={styles.buttonInnerGlow} /> : null}
+            </>
+          )}
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [styles.settingsResetButton, pressed && styles.buttonPressed]}
+          onPress={resetBonCount}
+        >
+          {({ pressed }) => (
+            <>
+              <Text style={styles.settingsResetButtonText}>Bon Count zurücksetzen</Text>
               {pressed ? <View pointerEvents="none" style={styles.buttonInnerGlow} /> : null}
             </>
           )}

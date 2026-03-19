@@ -2,6 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import styles from '../styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import base64 from 'react-native-base64';
 
 function GeneratedResultView({ value, timestamp, endTimestamp }) {
   return (
@@ -21,12 +22,17 @@ function GeneratedResultView({ value, timestamp, endTimestamp }) {
 }
 
 export default function ResultScreen({ route, navigation }) {
+  const tseBaseNumber = "a845e9a0317f"; // 20-digit base number for TSE; in real app, this should be securely generated and stored
   const generatedValue = route?.params?.generatedValue ?? '0';
   const timestamp = route?.params?.timestamp;
   const endTimestamp = route?.params?.endTimestamp;
 
   // encode value, start and end timestamps in QR code; use simple pipe-delimited string
-  const qrPayload = `V0;${generatedValue};${timestamp};${endTimestamp}`;
+  const qrPayload = `V0;${tseBaseNumber};Kassenbeleg-V1;Beleg^0.00_${generatedValue}_0.00_0.00_0.00^${generatedValue}:Bar;${};${timestamp};${endTimestamp}`;
+
+  function encodeToBase64(str) {
+    return base64.encode(str);
+  }
 
   // debug log in case QR code disappears again
   console.log('QR payload:', qrPayload);

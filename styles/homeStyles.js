@@ -46,6 +46,18 @@ const homeStyles = {
     fontWeight: '700',
     marginBottom: 18,
   },
+  bonCount: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#334155',
+  },
+  errorMessage: {
+    color: '#b91c1c',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
   inputContainer: {
     width: '100%',
     maxWidth: 360,

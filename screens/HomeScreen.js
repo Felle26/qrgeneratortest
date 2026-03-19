@@ -1,10 +1,31 @@
-import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles';
 
 export default function HomeScreen({ navigation }) {
   const [value, setValue] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [bonCount, setBonCount] = useState(0);
+
+  const BON_COUNT_STORAGE_KEY = 'bon_count';
+
+  const loadBonCount = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(BON_COUNT_STORAGE_KEY);
+      setBonCount(stored != null ? parseInt(stored, 10) || 0 : 0);
+    } catch (error) {
+      console.warn('Failed to load bon count', error);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadBonCount();
+    }, [loadBonCount])
+  );
 
   const numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', 'DEL'];
 
@@ -59,6 +80,7 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleChangeText = (text) => {
+    setStatusMessage('');
     setValue(removeLeadingZero(sanitizeValue(text)));
   };
 
@@ -91,12 +113,30 @@ export default function HomeScreen({ navigation }) {
     return rawValue;
   };
 
-  const generateQRCode = () => {
+const generateQRCode = async () => {
     const generatedValue = normalizeGeneratedValue(value);
-    const timestamp = Math.floor(Date.now() / 1000); // unix timestamp in seconds
-    const endTimestamp = timestamp + 1; // one second later
+    const numericValue = parseFloat(generatedValue);
+
+    // if no valid amount provided, show message and don't generate
+    if (!Number.isFinite(numericValue) || numericValue <= 0) {
+      setStatusMessage('Bitte gib einen Betrag größer als 0 ein.');
+      return;
+    }
+
+    const timestamp = new Date().toISOString(); // unix timestamp in seconds
+    const endTimestamp = new Date(Date.now() + 1000).toISOString(); // one second later
 
     setValue('');
+    setStatusMessage('');
+
+    const nextCount = bonCount + 1;
+    setBonCount(nextCount);
+    try {
+      await AsyncStorage.setItem(BON_COUNT_STORAGE_KEY, nextCount.toString());
+    } catch (error) {
+      console.warn('Failed to persist bon count', error);
+    }
+
     // pass value, start and end timestamp
     navigation.navigate('Ergebnis', { generatedValue, timestamp, endTimestamp });
   };
@@ -132,6 +172,8 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.clockText}>{formattedTime}</Text>
       </View>
       <Text style={styles.title}>QR Code Generator für Bonus App</Text>
+      <Text style={styles.bonCount}>Bon Count: {bonCount}</Text>
+      {statusMessage ? <Text style={styles.errorMessage}>{statusMessage}</Text> : null}
 
       <View style={styles.inputContainer}>
         <TextInput
