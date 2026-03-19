@@ -51,19 +51,16 @@ export default function HomeScreen({ navigation }) {
       return '';
     }
 
-    if (text.startsWith('0')) {
-      return text.replace(/^0+/, '');
+    // Allow entering "0" or "0." as a valid start (for values like 0.15)
+    if (text === '0' || text.startsWith('0.')) {
+      return text;
     }
 
-    return text;
+    return text.replace(/^0+/, '');
   };
 
   const addNumber = (num) => {
     setValue((prev) => {
-      if (prev.length === 0 && num === '0') {
-        return prev;
-      }
-
       if (num === '.' && prev.includes('.')) {
         return prev;
       }
@@ -95,6 +92,11 @@ export default function HomeScreen({ navigation }) {
   const normalizeGeneratedValue = (rawValue) => {
     if (!rawValue || rawValue === '.') {
       return '0';
+    }
+
+    // if user enters ".15", treat it as "0.15"
+    if (rawValue.startsWith('.')) {
+      rawValue = `0${rawValue}`;
     }
 
     if (!rawValue.includes('.')) {

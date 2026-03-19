@@ -45,8 +45,8 @@ export default function ResultScreen({ route, navigation }) {
   }, []);
 
   // encode value, start and end timestamps in QR code; use simple pipe-delimited string
-  const qrPayload = `V0;${tseBaseNumber};Kassenbeleg-V1;Beleg^0.00_${generatedValue}_0.00_0.00_0.00^${generatedValue}:Bar;${generatedValue};${timestamp};${endTimestamp}
-  ;ecdsa-plain-SHA256;unixTime;${tseValue};${hashkey}`;
+  const qrPayload = `V0;${tseBaseNumber};Kassenbeleg-V1;Beleg^0.00_${generatedValue}_0.00_0.00_0.00^${generatedValue}:Bar;${generatedValue};
+  ${timestamp};${endTimestamp};ecdsa-plain-SHA256;unixTime;${tseValue};${hashkey}`;
 
   function encodeToBase64(str) {
     return base64.encode(str);
