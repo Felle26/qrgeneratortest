@@ -9,17 +9,19 @@ const resultStyles = {
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
+    alignItems: 'center',
   },
   generatedFieldTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#067647',
-    marginBottom: 8,
+    marginBottom: 20,
   },
   generatedLabel: {
     fontSize: 16,
     fontWeight: '700',
     color: '#067647',
+    marginTop: 20,
     marginBottom: 6,
   },
   generatedValue: {
