@@ -139,8 +139,13 @@ const generateQRCode = async () => {
       console.warn('Failed to persist bon count', error);
     }
 
-    // pass value, start and end timestamp
-    navigation.navigate('Ergebnis', { generatedValue, timestamp, endTimestamp });
+    // pass value, start/end timestamp und Bonzähler
+    navigation.navigate('Ergebnis', {
+      generatedValue,
+      timestamp,
+      endTimestamp,
+      receiptCounter: nextCount.toString(),
+    });
   };
 
   useEffect(() => {
