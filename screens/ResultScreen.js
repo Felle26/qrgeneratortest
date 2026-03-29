@@ -22,7 +22,7 @@ function GeneratedResultView({ value, timestamp, endTimestamp, tseValue, receipt
       {tseValue ? <Text>TSE: {tseValue}</Text> : null}
     </View>
   );
-}
+} 
 
 export default function ResultScreen({ route, navigation }) {
   const [tseValue, setTseValue] = useState('');

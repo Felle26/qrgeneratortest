@@ -21,9 +21,9 @@ export default function HomeScreen({ navigation }) {
     }
   }, []);
 
-  useFocusEffect(
+  useFocusEffect( 
     useCallback(() => {
-      loadBonCount();
+      loadBonCount(); 
     }, [loadBonCount])
   );
 
