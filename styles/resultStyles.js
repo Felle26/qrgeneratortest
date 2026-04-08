@@ -29,6 +29,26 @@ const resultStyles = {
     fontWeight: '600',
     color: '#101828',
   },
+  signaturePresentText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#067647',
+    marginTop: 8,
+  },
+  signatureMissingText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#b42318',
+    marginTop: 8,
+  },
+  signatureValueText: {
+    fontSize: 11,
+    color: '#475467',
+    marginTop: 2,
+    marginBottom: 4,
+    textAlign: 'center',
+    fontFamily: 'monospace',
+  },
   backButton: {
     width: '100%',
     maxWidth: 360,

@@ -5,22 +5,28 @@ import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles';
 
 const TSE_STORAGE_KEY = 'tse_value';
+const TSE_BASE_NUMBER_STORAGE_KEY = 'tse_base_number';
 const BON_COUNT_STORAGE_KEY = 'bon_count';
 const GLOBAL_TOTAL_STORAGE_KEY = 'global_total_value';
 const LAST_GENERATED_STORAGE_KEY = 'last_generated_value';
+const TSE_SIGNATURE_STORAGE_KEY = 'tse_signature';
+const DEFAULT_TSE_BASE_NUMBER = 'a845e9a0317f';
 
 export default function SettingsScreen() {
   const [tseValue, setTseValue] = useState('');
+  const [tseBaseNumber, setTseBaseNumber] = useState(DEFAULT_TSE_BASE_NUMBER);
   const [globalTotal, setGlobalTotal] = useState('0.00');
   const [status, setStatus] = useState('');
 
   const loadSettingsValues = useCallback(async () => {
     try {
-      const [storedTseValue, storedGlobalTotal] = await AsyncStorage.multiGet([
+      const [storedTseValue, storedTseBaseNumber, storedGlobalTotal] = await AsyncStorage.multiGet([
         TSE_STORAGE_KEY,
+        TSE_BASE_NUMBER_STORAGE_KEY,
         GLOBAL_TOTAL_STORAGE_KEY,
       ]);
       setTseValue(storedTseValue?.[1] ?? '');
+      setTseBaseNumber(storedTseBaseNumber?.[1] ?? DEFAULT_TSE_BASE_NUMBER);
       setGlobalTotal(storedGlobalTotal?.[1] ?? '0.00');
     } catch (error) {
       setStatus('Fehler beim Laden der Einstellungen.');
@@ -39,10 +45,13 @@ export default function SettingsScreen() {
 
   const saveTseValue = async () => {
     try {
-      await AsyncStorage.setItem(TSE_STORAGE_KEY, tseValue.trim());
-      setStatus('TSE sicher gespeichert.');
+      await AsyncStorage.multiSet([
+        [TSE_STORAGE_KEY, tseValue.trim()],
+        [TSE_BASE_NUMBER_STORAGE_KEY, tseBaseNumber.trim() || DEFAULT_TSE_BASE_NUMBER],
+      ]);
+      setStatus('TSE und TSE Base Number gespeichert.');
     } catch (error) {
-      setStatus('Fehler beim Speichern der TSE.');
+      setStatus('Fehler beim Speichern der Einstellungen.');
     }
   };
 
@@ -52,6 +61,7 @@ export default function SettingsScreen() {
         [BON_COUNT_STORAGE_KEY, '0'],
         [GLOBAL_TOTAL_STORAGE_KEY, '0.00'],
         [LAST_GENERATED_STORAGE_KEY, '0.00'],
+        [TSE_SIGNATURE_STORAGE_KEY, ''],
       ]);
       setGlobalTotal('0.00');
       setStatus('Bon Count und globaler Wert wurden zurückgesetzt.');
@@ -74,6 +84,17 @@ export default function SettingsScreen() {
           value={tseValue}
           onChangeText={setTseValue}
           placeholder={tseValue || 'TSE eingeben'}
+          placeholderTextColor="#98a2b3"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Text style={styles.settingsLabel}>TSE Base Number</Text>
+        <TextInput
+          style={styles.settingsInput}
+          value={tseBaseNumber}
+          onChangeText={setTseBaseNumber}
+          placeholder={DEFAULT_TSE_BASE_NUMBER}
           placeholderTextColor="#98a2b3"
           autoCapitalize="none"
           autoCorrect={false}

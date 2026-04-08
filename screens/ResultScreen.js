@@ -3,107 +3,151 @@ import { Pressable, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import styles from '../styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import base64 from 'react-native-base64';
 import * as Crypto from 'expo-crypto';
 
 const TSE_STORAGE_KEY = 'tse_value'; // 20-digit base number for TSE; in real app, this should be securely generated and stored
+const TSE_BASE_NUMBER_STORAGE_KEY = 'tse_base_number';
 const LAST_GENERATED_STORAGE_KEY = 'last_generated_value';
-const TSE_BASE_NUMBER = "a845e9a0317f"; // 12-digit base number for TSE; in real app, this should be securely generated and stored
+const TSE_SIGNATURE_STORAGE_KEY = 'tse_signature';
+const DEFAULT_TSE_BASE_NUMBER = 'a845e9a0317f';
 
-
-function GeneratedResultView({ value, enteredValue, globalValue, timestamp, endTimestamp, tseValue, receiptCounter }) {
+function GeneratedResultView({
+  value,
+  globalValue,
+  timestamp,
+  endTimestamp,
+  tseValue,
+  receiptCounter,
+  previousSignature,
+  currentSignature,
+}) {
   return (
     <View style={styles.generatedFieldView}>
-      <Text style={styles.generatedFieldTitle}>Hier ist dein QR-Code, </Text>
+      <Text style={styles.generatedFieldTitle}>Hier ist dein QR-Code,</Text>
       <Text style={styles.generatedFieldTitle}>bitte Scanne ihn jetzt</Text>
-      {enteredValue ? <Text style={styles.generatedValue}>Eingegeben: {enteredValue} EUR</Text> : null}
+      {value ? <Text style={styles.generatedValue}>Betrag: {value} EUR</Text> : null}
+      <Text style={previousSignature ? styles.signaturePresentText : styles.signatureMissingText}>
+        Vorherige Signatur: {previousSignature ? '✓ vorhanden' : '✗ keine (erster Bon)'}
+      </Text>
+      {previousSignature ? (
+        <Text style={styles.signatureValueText} numberOfLines={2} ellipsizeMode="middle">
+          {previousSignature}
+        </Text>
+      ) : null}
+      <Text>Aktuelle Signatur: {currentSignature || '(wird berechnet...)'}</Text>
     </View>
   );
-} 
+}
 
 export default function ResultScreen({ route, navigation }) {
   const [tseValue, setTseValue] = useState('');
+  const [tseBaseNumber, setTseBaseNumber] = useState(DEFAULT_TSE_BASE_NUMBER);
   const [persistentGeneratedValue, setPersistentGeneratedValue] = useState('0.00');
-  const [hashkey, setHashkey] = useState('');
-  const tseBaseNumber = TSE_BASE_NUMBER; // 12-digit base number for TSE; in real app, this should be securely generated and stored
+  const [previousSignature, setPreviousSignature] = useState('');
+  const [currentSignature, setCurrentSignature] = useState('');
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const generatedValue = route?.params?.generatedValue ?? persistentGeneratedValue;
   const enteredValue = route?.params?.enteredValue;
   const globalValue = route?.params?.globalValue ?? persistentGeneratedValue;
   const timestamp = route?.params?.timestamp;
   const endTimestamp = route?.params?.endTimestamp;
   const receiptCounter = route?.params?.receiptCounter ?? '1';
-
-  useEffect(() => {
-    const computeHashKey = async () => {
-      // Hash sollte alle entscheidenden RKSV-Felder enthalten, inklusive Bonzähler
-      const hash = `${generatedValue}|${timestamp}|${endTimestamp}|${receiptCounter}|${tseValue}`;
-      try {
-        const digest = await Crypto.digestStringAsync(
-          Crypto.CryptoDigestAlgorithm.SHA256,
-          hash,
-          { encoding: Crypto.CryptoEncoding.BASE64 }
-        );
-        setHashkey(digest);
-      } catch (error) {
-        console.warn('Failed to compute hash key', error);
-        setHashkey('');
-      }
-    };
-
-    computeHashKey();
-  }, [generatedValue, timestamp, receiptCounter, tseValue]);
+  const amountForReceipt = enteredValue ?? generatedValue;
 
   useEffect(() => {
     const loadValues = async () => {
       try {
-        const [storedTse, storedGenerated] = await AsyncStorage.multiGet([
+        const [storedTse, storedTseBaseNumber, storedGenerated, storedSignature] = await AsyncStorage.multiGet([
           TSE_STORAGE_KEY,
+          TSE_BASE_NUMBER_STORAGE_KEY,
           LAST_GENERATED_STORAGE_KEY,
+          TSE_SIGNATURE_STORAGE_KEY,
         ]);
         setTseValue(storedTse?.[1] ?? '');
+        setTseBaseNumber(storedTseBaseNumber?.[1] ?? DEFAULT_TSE_BASE_NUMBER);
         setPersistentGeneratedValue(storedGenerated?.[1] ?? '0.00');
+        setPreviousSignature(storedSignature?.[1] ?? '');
+        setIsDataLoaded(true);
       } catch (error) {
         console.warn('Failed to load persisted values', error);
+        setIsDataLoaded(true);
       }
     };
 
     loadValues();
   }, []);
 
+  useEffect(() => {
+    if (!isDataLoaded) {
+      return;
+    }
+
+    const computeAndPersistSignature = async () => {
+      const signatureInput = [
+        'KASSE01-WTC',
+        tseBaseNumber,
+        'Beleg',
+        timestamp ?? '',
+        endTimestamp ?? '',
+        `Beleg^0.00_${amountForReceipt}_0.00_0.00_0.00^${amountForReceipt}:Bar`,
+        tseValue ?? '',
+        receiptCounter ?? '',
+        previousSignature ?? '',
+      ].join('');
+
+      try {
+        const nextSignature = await Crypto.digestStringAsync(
+          Crypto.CryptoDigestAlgorithm.SHA256,
+          signatureInput,
+          { encoding: Crypto.CryptoEncoding.BASE64 }
+        );
+
+        setCurrentSignature(nextSignature);
+        await AsyncStorage.setItem(TSE_SIGNATURE_STORAGE_KEY, nextSignature);
+      } catch (error) {
+        console.warn('Failed to compute TSE signature', error);
+        setCurrentSignature('');
+      }
+    };
+
+    computeAndPersistSignature();
+  }, [
+    isDataLoaded,
+    tseBaseNumber,
+    timestamp,
+    endTimestamp,
+    amountForReceipt,
+    tseValue,
+    receiptCounter,
+    previousSignature,
+  ]);
+
   const qrPayload = [
-    "V0", // QR Code Version
-    tseBaseNumber, // TSE Basisnummer (12-stellig)
-    "Kassenbeleg-V1", // Belegtyp
-    `Beleg^0.00_${enteredValue}_0.00_0.00_0.00^${enteredValue}:Bar`, // Beleginhalt mit Betrag und Zahlungsart
-    globalValue, // Globaler Wert
-    receiptCounter, // Bonzähler
-    timestamp, // Startzeit
-    endTimestamp, // Endzeit
-    "ecdsa-plain-SHA256", // Signaturverfahren
-    "unixTime", // Zeitformat
-    tseValue, // TSE Wert
-    hashkey, // Hash über alle relevanten Felder
+    'V0',
+    tseBaseNumber,
+    'Kassenbeleg-V1',
+    `Beleg^0.00_${amountForReceipt}_0.00_0.00_0.00^${amountForReceipt}:Bar`,
+    globalValue,
+    receiptCounter,
+    timestamp,
+    endTimestamp,
+    'ecdsa-plain-SHA256',
+    'unixTime',
+    tseValue,
+    currentSignature,
   ].join(";");
-
-  function encodeToBase64(str) {
-    return base64.encode(str);
-  }
-
-  // debug log in case QR code disappears again
-  console.warn('QR payload:', qrPayload);
-  console.info('TSE value:', tseValue);
-  console.info('Hash key:', hashkey);
 
   return (
     <View style={styles.resultContainer}>
       <GeneratedResultView
-        value={generatedValue.toString()}
-        enteredValue={enteredValue?.toString()}
+        value={amountForReceipt.toString()}
         globalValue={globalValue?.toString()}
         timestamp={timestamp?.toString()}
         endTimestamp={endTimestamp?.toString()}
         tseValue={tseValue}
         receiptCounter={receiptCounter}
+        previousSignature={previousSignature}
+        currentSignature={currentSignature}
       />
       <QRCode value={qrPayload} size={400} />
 
