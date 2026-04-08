@@ -106,7 +106,7 @@ export default function ResultScreen({ route, navigation }) {
         const nextSignature = await Crypto.digestStringAsync(
           Crypto.CryptoDigestAlgorithm.SHA256,
           signatureInput,
-          { encoding: Crypto.CryptoEncoding.BASE64 }
+          { encoding: Crypto.CryptoEncoding.HEX }
         );
 
         setCurrentSignature(nextSignature);
