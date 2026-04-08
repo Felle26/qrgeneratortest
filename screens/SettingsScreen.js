@@ -6,28 +6,35 @@ import styles from '../styles';
 
 const TSE_STORAGE_KEY = 'tse_value';
 const BON_COUNT_STORAGE_KEY = 'bon_count';
+const GLOBAL_TOTAL_STORAGE_KEY = 'global_total_value';
+const LAST_GENERATED_STORAGE_KEY = 'last_generated_value';
 
 export default function SettingsScreen() {
   const [tseValue, setTseValue] = useState('');
+  const [globalTotal, setGlobalTotal] = useState('0.00');
   const [status, setStatus] = useState('');
 
-  const loadTseValue = useCallback(async () => {
+  const loadSettingsValues = useCallback(async () => {
     try {
-      const storedValue = await AsyncStorage.getItem(TSE_STORAGE_KEY);
-      setTseValue(storedValue ?? '');
+      const [storedTseValue, storedGlobalTotal] = await AsyncStorage.multiGet([
+        TSE_STORAGE_KEY,
+        GLOBAL_TOTAL_STORAGE_KEY,
+      ]);
+      setTseValue(storedTseValue?.[1] ?? '');
+      setGlobalTotal(storedGlobalTotal?.[1] ?? '0.00');
     } catch (error) {
-      setStatus('Fehler beim Laden der TSE.');
+      setStatus('Fehler beim Laden der Einstellungen.');
     }
   }, []);
 
   useEffect(() => {
-    loadTseValue();
-  }, [loadTseValue]);
+    loadSettingsValues();
+  }, [loadSettingsValues]);
 
   useFocusEffect(
     useCallback(() => {
-      loadTseValue();
-    }, [loadTseValue])
+      loadSettingsValues();
+    }, [loadSettingsValues])
   );
 
   const saveTseValue = async () => {
@@ -41,10 +48,15 @@ export default function SettingsScreen() {
 
   const resetBonCount = async () => {
     try {
-      await AsyncStorage.setItem(BON_COUNT_STORAGE_KEY, '0');
-      setStatus('Bon Count wurde zurückgesetzt.');
+      await AsyncStorage.multiSet([
+        [BON_COUNT_STORAGE_KEY, '0'],
+        [GLOBAL_TOTAL_STORAGE_KEY, '0.00'],
+        [LAST_GENERATED_STORAGE_KEY, '0.00'],
+      ]);
+      setGlobalTotal('0.00');
+      setStatus('Bon Count und globaler Wert wurden zurückgesetzt.');
     } catch (error) {
-      setStatus('Fehler beim Zurücksetzen des Bon Counts.');
+      setStatus('Fehler beim Zurücksetzen der Werte.');
     }
   };
 
@@ -53,6 +65,8 @@ export default function SettingsScreen() {
       <View style={styles.settingsCard}>
         <Text style={styles.settingsTitle}>Einstellungen</Text>
         <Text style={styles.settingsDescription}>Einstellungen für TSE & andere Optionen</Text>
+        <Text style={styles.settingsLabel}>Globaler Wert</Text>
+        <Text style={styles.settingsDescription}>{globalTotal} EUR</Text>
 
         <Text style={styles.settingsLabel}>TSE</Text>
         <TextInput
@@ -83,7 +97,7 @@ export default function SettingsScreen() {
         >
           {({ pressed }) => (
             <>
-              <Text style={styles.settingsResetButtonText}>Bon Count zurücksetzen</Text>
+              <Text style={styles.settingsResetButtonText}>Bon Count + Globalwert zurücksetzen</Text>
               {pressed ? <View pointerEvents="none" style={styles.buttonInnerGlow} /> : null}
             </>
           )}

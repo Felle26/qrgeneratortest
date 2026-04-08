@@ -4,13 +4,29 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles';
 
+const BON_COUNT_STORAGE_KEY = 'bon_count';
+const GLOBAL_TOTAL_STORAGE_KEY = 'global_total_value';
+const LAST_GENERATED_STORAGE_KEY = 'last_generated_value';
+
 export default function HomeScreen({ navigation }) {
   const [value, setValue] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [bonCount, setBonCount] = useState(0);
+  const [globalTotal, setGlobalTotal] = useState(0);
 
-  const BON_COUNT_STORAGE_KEY = 'bon_count';
+  const roundToTwoDecimals = (number) => Math.round((number + Number.EPSILON) * 100) / 100;
+
+  const parseStoredNumber = (storedValue) => {
+    if (storedValue == null) {
+      return 0;
+    }
+
+    const parsed = Number.parseFloat(storedValue);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const formatAmount = (number) => roundToTwoDecimals(number).toFixed(2);
 
   const loadBonCount = useCallback(async () => {
     try {
@@ -21,10 +37,21 @@ export default function HomeScreen({ navigation }) {
     }
   }, []);
 
+  const loadGlobalTotal = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(GLOBAL_TOTAL_STORAGE_KEY);
+      setGlobalTotal(parseStoredNumber(stored));
+    } catch (error) {
+      console.warn('Failed to load global total value', error);
+      setGlobalTotal(0);
+    }
+  }, []);
+
   useFocusEffect( 
     useCallback(() => {
-      loadBonCount(); 
-    }, [loadBonCount])
+      loadBonCount();
+      loadGlobalTotal();
+    }, [loadBonCount, loadGlobalTotal])
   );
 
   const numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', 'DEL'];
@@ -115,7 +142,7 @@ export default function HomeScreen({ navigation }) {
     return rawValue;
   };
 
-const generateQRCode = async () => {
+  const generateQRCode = async () => {
     const generatedValue = normalizeGeneratedValue(value);
     const numericValue = parseFloat(generatedValue);
 
@@ -131,17 +158,28 @@ const generateQRCode = async () => {
     setValue('');
     setStatusMessage('');
 
+    const nextGlobalTotal = roundToTwoDecimals(globalTotal + numericValue);
+    const nextGeneratedValue = formatAmount(nextGlobalTotal);
+
     const nextCount = bonCount + 1;
     setBonCount(nextCount);
+    setGlobalTotal(nextGlobalTotal);
+
     try {
-      await AsyncStorage.setItem(BON_COUNT_STORAGE_KEY, nextCount.toString());
+      await AsyncStorage.multiSet([
+        [BON_COUNT_STORAGE_KEY, nextCount.toString()],
+        [GLOBAL_TOTAL_STORAGE_KEY, nextGeneratedValue],
+        [LAST_GENERATED_STORAGE_KEY, nextGeneratedValue],
+      ]);
     } catch (error) {
-      console.warn('Failed to persist bon count', error);
+      console.warn('Failed to persist generated values', error);
     }
 
     // pass value, start/end timestamp und Bonzähler
     navigation.navigate('Ergebnis', {
-      generatedValue,
+      generatedValue: nextGeneratedValue,
+      enteredValue: formatAmount(numericValue),
+      globalValue: nextGeneratedValue,
       timestamp,
       endTimestamp,
       receiptCounter: nextCount.toString(),
@@ -179,7 +217,8 @@ const generateQRCode = async () => {
         <Text style={styles.clockText}>{formattedTime}</Text>
       </View>
       <Text style={styles.title}>QR Code Generator für Bonus App</Text>
-      <Text style={styles.bonCount}>Bon Count: {bonCount}</Text>
+      <Text style={styles.bonCount}>Bon Zähler: {bonCount}</Text>
+      
       {statusMessage ? <Text style={styles.errorMessage}>{statusMessage}</Text> : null}
 
       <View style={styles.inputContainer}>
