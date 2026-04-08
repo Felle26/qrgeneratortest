@@ -34,7 +34,14 @@ function GeneratedResultView({
           {previousSignature}
         </Text>
       ) : null}
-      <Text>Aktuelle Signatur: {currentSignature || '(wird berechnet...)'}</Text>
+      <Text style={currentSignature ? styles.signaturePresentText : styles.signatureMissingText}>
+        Aktuelle Signatur: {currentSignature ? '✓ vorhanden' : '✗ keine (wird berechnet...)'}
+      </Text>
+      {currentSignature ? (
+        <Text style={styles.signatureValueText} numberOfLines={2} ellipsizeMode="middle">
+          {currentSignature}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -87,10 +94,10 @@ export default function ResultScreen({ route, navigation }) {
         'KASSE01-WTC',
         tseBaseNumber,
         'Beleg',
-        timestamp ?? '',
-        endTimestamp ?? '',
+        timestamp,
+        endTimestamp,
         `Beleg^0.00_${amountForReceipt}_0.00_0.00_0.00^${amountForReceipt}:Bar`,
-        tseValue ?? '',
+        tseValue,
         receiptCounter ?? '',
         previousSignature ?? '',
       ].join('');
@@ -117,8 +124,8 @@ export default function ResultScreen({ route, navigation }) {
     timestamp,
     endTimestamp,
     amountForReceipt,
-    tseValue,
     receiptCounter,
+    tseValue,
     previousSignature,
   ]);
 
